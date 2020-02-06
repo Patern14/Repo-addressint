@@ -179,7 +179,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 
 
 		// Create Image marker list
-		$folderMarkerUrl = JPATH_SITE. DS ."images". DS . $folder_custom_marker. DS; // Probleme: $folder_custom_marker does not exist ////////
+		$folderMarkerUrl = JPATH_SITE. DS ."images". DS . $folder_custom_marker. DS; 
 		// Default marker
 		if ($mapapi_edit == 'googlemap') 
 		{

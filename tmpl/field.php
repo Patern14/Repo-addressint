@@ -133,7 +133,6 @@ foreach ($values as $value)
 			<td class="key"><label class="fc-prop-lbl addrint_zip-lbl" for="'.$elementid_n.'_zip">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_ZIP_POSTAL_CODE').'</label></td>
 			<td>
 				<input type="text" class="fcfield_textval inlineval addrint_zip ' . (in_array('zip_postal_code', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_zip" name="'.$fieldname_n.'[zip]" value="'.htmlspecialchars($value['zip'], ENT_COMPAT, 'UTF-8').'" size="10" maxlength="10" />
-				<span '.($use_zip_suffix ? '' : 'style="display:none"').'>&nbsp;<input type="text" class="fcfield_textval inlineval addrint_zip_suffix" id="'.$elementid_n.'_zip_suffix" name="'.$fieldname_n.'[zip_suffix]" value="'.htmlspecialchars($value['zip_suffix'], ENT_COMPAT, 'UTF-8').'" size="5" maxlength="10" /></span>
 			</td>
 		</tr>
 		<tr '.($use_country ? '' : 'style="display:none;"').' class="fc_gm_country_row">
@@ -269,15 +268,14 @@ foreach ($values as $value)
 			<td class="key"><label class="fc-prop-lbl addrint_zip-lbl" for="'.$elementid_n.'_zip">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_ZIP_POSTAL_CODE').'</label></td>
 			<td>
 				<input type="text" class="fcfield_textval inlineval addrint_zip ' . (in_array('zip_postal_code', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_zip" name="'.$fieldname_n.'[zip]" value="'.htmlspecialchars($value['zip'], ENT_COMPAT, 'UTF-8').'" size="10" maxlength="10" />
-				<span '.($use_zip_suffix ? '' : 'style="display:none"').'>&nbsp;<input type="text" class="fcfield_textval inlineval addrint_zip_suffix" id="'.$elementid_n.'_zip_suffix" name="'.$fieldname_n.'[zip_suffix]" value="'.htmlspecialchars($value['zip_suffix'], ENT_COMPAT, 'UTF-8').'" size="5" maxlength="10" /></span>
 			</td>
 		</tr>
+
 		<tr '.($use_country ? '' : 'style="display:none;"').' class="fc_gm_country_row">
 			<td class="key"><label class="fc-prop-lbl fc_gm_country-lbl" for="'.$elementid_n.'_country">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_COUNTRY').'</label></td>
-			<td>
-				'.JHtml::_('select.genericlist', $allowed_countries, $fieldname_n.'[country]', /* $countries_attribs  .*/ ' class="use_select2_lib fc_gm_country ' . ($use_country && in_array('country', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr, 'value', 'text', ($value['country'] ? $value['country'] : $ac_country_default), $elementid_n.'_country').'
-			</td>
+			<td><input type="text" id="country-algolia" placeholder="Country Algolia" class="fcfield_textval fc_gm_country" size="50" maxlength="100" /></td>
 		</tr>
+
 	') .
 
 
@@ -321,7 +319,7 @@ foreach ($values as $value)
 			<div id="map_canvas_'.$elementid_n.'" class="addrint_map_canvas" '.($map_width || $map_height  ?  'style="width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div>
 		</div>
 	</div>
-	
+
 // Algolia map container:
 	<div id="carte" class="map-preview" >
 		<div id="map-example-container" class="addrint_algolia_canvas" '.($map_width || $map_height  ?  'style=";width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div>
@@ -384,7 +382,7 @@ if ( $mapapi_edit == 'googlemap'){
 	$n++;
 }
 
-// Algolia Autocomplete /////////////////////////////////////////////////////////
+// Algolia Autocomplete 
 if ( $mapapi_edit == 'algolia'){ 
   $dom_ready_js='(function() {
 			var placesAutocomplete = places({  
@@ -404,7 +402,7 @@ if ( $mapapi_edit == 'algolia'){
 				document.querySelector(\'#custom_localisation_0_city\').value = e.suggestion.city || \'\';
 				document.querySelector(\'#custom_localisation_0_province\').value = e.suggestion.administrative || \'\';
 				document.querySelector(\'#custom_localisation_0_zip\').value = e.suggestion.postcode || \'\';
-				document.querySelector(\'.select2-choice\').value = e.suggestion.country || \'\';
+				document.querySelector(\'#country-algolia\').value = e.suggestion.country || \'\';
 				document.querySelector(\'#custom_localisation_0_lat\').value = e.suggestion.latlng[\'lat\'] || \'\';
 				document.querySelector(\'#custom_localisation_0_lon\').value = e.suggestion.latlng[\'lng\'] || \'\';
 				});

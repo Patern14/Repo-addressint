@@ -152,3 +152,14 @@ if ( $mapapi_edit == 'algolia'){
 			
 		})();';
 }
+
+
+
+
+
+<tr '.($use_country ? '' : 'style="display:none;"').' class="fc_gm_country_row">
+			<td class="key"><label class="fc-prop-lbl fc_gm_country-lbl" for="'.$elementid_n.'_country">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_COUNTRY').'</label></td>
+			<td>
+				'.JHtml::_('select.genericlist', $allowed_countries, $fieldname_n.'[country]', /* $countries_attribs  .*/ ' class="use_select2_lib fc_gm_country ' . ($use_country && in_array('country', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr, 'value', 'text', ($value['country'] ? $value['country'] : $ac_country_default), $elementid_n.'_country').'
+			</td>
+		</tr>
