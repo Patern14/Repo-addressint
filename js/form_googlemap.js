@@ -12,7 +12,6 @@
 	fcfield_addrint.map_type = [];
 	fcfield_addrint.LatLon = [];
 
-
 	// initialize autocomplete
 	fcfield_addrint.initAutoComplete = function(elementid_n, config_name)
 	{
@@ -153,7 +152,6 @@
 			place = fcfield_addrint.autoComplete[elementid_n].getPlace();
 			redrawMap = true;
 		}
-		//window.console.log(place);
 		
 		if (typeof place.address_components == 'undefined') return;
 		
@@ -239,7 +237,7 @@
 				break;
 			}
 		});
-
+		
 		var street_address = '', index = -1, div = document.createElement('div');
 
 		// Get FULL address
@@ -247,8 +245,6 @@
 			street_address = place.formatted_address;
 		else if (typeof place.adr_address != 'undefined')
 			street_address = place.adr_address;
-
-		//window.console.log(street_address);
 
 		// Strip tags
 		div.innerHTML = street_address;
@@ -344,3 +340,4 @@
 			usstate_row.find('.invalid').removeClass('invalid').removeAttr('aria-invalid');
 		}
 	}
+	

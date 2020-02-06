@@ -75,7 +75,7 @@ foreach ($values as $value)
 			<td>
 				<input id="'.$elementid_n.'_autocomplete" class="addrint_autocomplete" name="'.$fieldname_n.'[autocomplete]" type="text" autocomplete="off" />
 			</td>
-	</div>
+	
 		<tr>
 	' .
 
@@ -138,14 +138,12 @@ foreach ($values as $value)
 				<input type="text" class="fcfield_textval inlineval addrint_zip ' . (in_array('zip_postal_code', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_zip" name="'.$fieldname_n.'[zip]" value="'.htmlspecialchars($value['zip'], ENT_COMPAT, 'UTF-8').'" size="10" maxlength="10" />
 			</td>
 		</tr>
+
 		<tr '.($use_country ? '' : 'style="display:none;"').' class="fc_gm_country_row">
 			<td class="key"><label class="fc-prop-lbl fc_gm_country-lbl" for="'.$elementid_n.'_country">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_COUNTRY').'</label></td>
-			<td>
-				'.JHtml::_('select.genericlist', $allowed_countries, $fieldname_n.'[country]', /* $countries_attribs  .*/ ' class="use_select2_lib fc_gm_country ' . ($use_country && in_array('country', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr, 'value', 'text', ($value['country'] ? $value['country'] : $ac_country_default), $elementid_n.'_country').'
-			</td>
+			<td><input type="text" class="fcfield_textval fc_gm_country ' . ($use_country ? ' required' : '') . $disabled_class . '" ' . 	$disabled_attr . ' id="'.$elementid_n.'_country" name="'.$fieldname_n.'[country]" value="'.htmlspecialchars($value['country'], ENT_COMPAT, 'UTF-8').'" size="50" maxlength="100" /></td>
 		</tr>
-	') .
-
+	') ./* TODO: value = country name, not country code */
 
 	(!$edit_latlon ? '' : '
 		<tr>
@@ -171,8 +169,9 @@ foreach ($values as $value)
 	</div>
 
 	<div id="'.$elementid_n.'_addressint_map" class="fcfield_field_preview_box fcfield_addressint_map" style="display: contents;">
+		'.($mapapi_edit =='algolia' ? '' : '
 		<div>
-			<div class="'.$input_grp_class.' fc-xpended">
+			<div class="'.$input_grp_class.' fc-xpended" >
 				<label class="' . $add_on_class . ' fc-lbl-short addrint_marker_tolerance-lbl">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_MARKER_TOLERANCE').'</label>
 				<input type="text" class="fcfield_textval inlineval addrint_marker_tolerance" id="'.$elementid_n.'_marker_tolerance" name="'.$fieldname_n.'[marker_tolerance]" value="50" size="7" maxlength="7" />
 			</div>
@@ -182,7 +181,8 @@ foreach ($values as $value)
 				<span id="'.$elementid_n.'_zoom_label" class="' . $add_on_class . ' addrint_zoom_label">'.$value['zoom'].'</span>
 			</div>
 		</div>
-
+		').
+		'
 		<div class="fcfield_addressint_canvas_outer">
 			<div id="map_canvas_'.$elementid_n.'" class="addrint_map_canvas" '.($map_width || $map_height  ?  'style="width:'.$map_width.'px; height:'.$map_height.'px; position: absolute; top: 100px; left: 600px; overflow: hidden;"' : '').'></div>
 		</div>
@@ -226,7 +226,7 @@ if(!$edit_latlon)
 	';
 }
 
-////////////////////////////////////
+
 if ( $mapapi_edit == 'googlemap'){ 
 $js .= '
 fcfield_addrint.LatLon["'.$elementid_n.'"] =  {lat: '.($value['lat'] ? $value['lat'] : '0').', lng: '.($value['lon'] ? $value['lon'] : '0').'};
@@ -243,49 +243,90 @@ $field->html[$n] = '
 	</div>
 ';
 
-	
-	$n++;
 
-if ($dom_ready_js)
-{
-	$js .= '
-	// load autocomplete on page ready
-	jQuery(document).ready(function() {
-		'.$dom_ready_js.'
-		
-		function format(state) {
-			if (!state.id) return state.text; // optgroup
-			return "<img class=\'flag\' src=\'" + state.id.toLowerCase() + "\'/>" + state.text;
-		}
-		jQuery("#'.$elementid_n.'_custom_marker").select2({
-			formatResult: format,
-			formatSelection: format,
-			escapeMarkup: function(m) { return m; }
-		});
-
-	});
-	';
-}
-
-// Algolia Autocomplete 
+// Algolia Autocomplete Script
 if($mapapi_edit == 'algolia') 
-	{
-		echo('HELLO ' . $n . '  ');
-	$document->addScriptDeclaration('jQuery(document).ready(function() {
+	{	
+		// Allowed countries
+		$ac_country_default = $field->parameters->get('ac_country_default', '');
+		$ac_country_allowed_list = $field->parameters->get('ac_country_default', '').',' .$field->parameters->get('ac_country_allowed_list', '');
+		$ac_country_allowed_list = array_unique(FLEXIUtilities::paramToArray($ac_country_allowed_list, "/[\s]*,[\s]*/", false, true));
+		$_list = count($ac_country_allowed_list) ? array_flip($ac_country_allowed_list) : '';
+		$allowed_country_names = array();  // Empty when Algolia
+		$country_allowed_list_string = implode($ac_country_allowed_list, "', '");
+
+		// Allowed type
+		$ac_types_default = $field->parameters->get('ac_types_default', '');
+		$ac_type_allowed_list = $field->parameters->get('ac_type_allowed_list', false);
+		$ac_type_allowed_list = $ac_type_allowed_list ?: array('','geocode','address','establishment','(regions)','(cities)');
+		$ac_type_allowed_list = FLEXIUtilities::paramToArray($ac_type_allowed_list, false, false, true);
+		$ac_type_options = '';
+		foreach($ac_type_allowed_list as $ac_type)
+		{
+			$lbl = $list_ac_types[$ac_type];
+			$ac_type_options .= '<option value="'.htmlspecialchars($ac_type, ENT_COMPAT, 'UTF-8').'"  '.($ac_type == $ac_types_default ? 'selected="selected"' : '').'>'.JText::_($lbl)."</option>\n";
+		}
+
+		$coma = '';
+		$allow_search_type = '';
+		$allow_search_country = '';
+
+		$configure = '.configure({
+					'.$allow_search_type.''.$coma.'
+					'.$allow_search_country.'
+				})';
+
+		// Allowed search options
+		if ($ac_types_default == '' && strlen($country_allowed_list_string) == 0) {
+			$configure = NULL;
+		} else if ($ac_types_default != '' && strlen($country_allowed_list_string) > 0) {
+			$coma = ',';
+			$allow_search_country = 'countries:[\''.$country_allowed_list_string.'\']';
+			if ($ac_types_default == '(cities)' ) {
+				$allow_search_type = 'type:\'city\'';
+			} else if ($ac_types_default == 'address') {
+				$allow_search_type = 'type:\'address\'';
+			}
+			$configure = '.configure({
+				'.$allow_search_type.''.$coma.'
+				'.$allow_search_country.'
+			})';
+		} else if ($ac_types_default != '' && strlen($country_allowed_list_string) == 0) {
+			if ($ac_types_default == '(cities)' ) {
+				$allow_search_type = 'type:\'city\'';
+			} else if ($ac_types_default == 'address') {
+				$allow_search_type = 'type:\'address\'';
+			}
+			$configure = '.configure({
+				'.$allow_search_type.''.$coma.'
+				'.$allow_search_country.'
+			})';
+		} else if ($ac_types_default == '' && strlen($country_allowed_list_string) > 0) {
+			$allow_search_country = 'countries:[\''.$country_allowed_list_string.'\']';
+			$configure = '.configure({
+				'.$allow_search_type.''.$coma.'
+				'.$allow_search_country.'
+			})'; 
+		};
+		
+	$dom_ready_js='jQuery(document).ready(function() {
+		console.log("Document ready");
+		jQuery(document).change(function() {
+			console.log("Document change");
+		});
 
 		/* Algolia map container: */
 		var map = L.map(\'map_canvas_'.$elementid_n.'\', {
 			scrollWheelZoom: true,
-			zoomControl: true
-			
+			zoomControl: true	
 		  });
 
-		  /* Reset of the Bootstrap container */
+		  /* Bootstrap container reset */
 		  setTimeout(function() {
 			map.invalidateSize();
 		  }, 10);
 
-		map.setView(['.$elementid_n.'_lat.value, '.$elementid_n.'_lon.value], 7);
+		map.setView(['.$elementid_n.'_lat.value, '.$elementid_n.'_lon.value], 13);
 		L.marker(['.$elementid_n.'_lat.value, '.$elementid_n.'_lon.value]).addTo(map);
 		
 	var placesAutocomplete = places({  
@@ -297,9 +338,8 @@ if($mapapi_edit == 'algolia')
 			return suggestion.name;
 		  }
 		}
-		}).configure({
-		type: \'address\'
-		});
+		})'.$configure.';
+
 		placesAutocomplete.on(\'change\', function resultSelected(e) {
 		document.querySelector(\'#'.$elementid_n.'_addr1\').value = e.suggestion.value || \'\';
 		document.querySelector(\'#'.$elementid_n.'_city\').value = e.suggestion.city || \'\';
@@ -309,7 +349,7 @@ if($mapapi_edit == 'algolia')
 		document.querySelector(\'#'.$elementid_n.'_lat\').value = e.suggestion.latlng[\'lat\'] || \'\';
 		document.querySelector(\'#'.$elementid_n.'_lon\').value = e.suggestion.latlng[\'lng\'] || \'\';
 		});
-  
+		
   var osmLayer = new L.TileLayer(
 	\'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png\', {
 	  minZoom: 1,
@@ -332,7 +372,7 @@ if($mapapi_edit == 'algolia')
 	markers = [];
 
 	if (e.suggestions.length === 0) {
-	  map.setView(new L.LatLng(45, 0), 2);
+	  map.setView(new L.LatLng(45, 0), 13);
 	  return;
 	}
 
@@ -354,7 +394,7 @@ if($mapapi_edit == 'algolia')
   }
 
   function handleOnClear() {
-	map.setView(new L.LatLng(45, 0), 1);
+	map.setView(new L.LatLng(45, 0), 13);
 	markers.forEach(removeMarker);
   }
 
@@ -386,10 +426,32 @@ if($mapapi_edit == 'algolia')
 	map.fitBounds(featureGroup.getBounds().pad(0.5), {animate: false});
   }
 	
-});');
+})';
+} // Algolia Script end
+
+
+if ($dom_ready_js)
+{
+	$js .= '
+	console.log("$dom_ready_js loaded");
+	// load autocomplete on page ready
+	jQuery(document).ready(function() {
+		'.$dom_ready_js.'
 		
+		function format(state) {
+			if (!state.id) return state.text; // optgroup
+			return "<img class=\'flag\' src=\'" + state.id.toLowerCase() + "\'/>" + state.text;
+		}
+		jQuery("#'.$elementid_n.'_custom_marker").select2({
+			formatResult: format,
+			formatSelection: format,
+			escapeMarkup: function(m) { return m; }
+		});
+	});
+	';
 }
 
-}
+$n++;
+} // Foreach end
 
 $document->addScriptDeclaration($js);

@@ -147,22 +147,21 @@ class plgFlexicontent_fieldsAddressint extends FCField
 		// GET ALLOWED ac search types, note 'false' may have been saved for 'ac_type_allowed_list' due to legacy bug, so do not use heritage directly
 		$ac_types_default = $field->parameters->get('ac_types_default', '');
 		$ac_type_allowed_list = $field->parameters->get('ac_type_allowed_list', false);
-
 		$ac_type_allowed_list = $ac_type_allowed_list ?: array('','geocode','address','establishment','(regions)','(cities)');
 		$ac_type_allowed_list = FLEXIUtilities::paramToArray($ac_type_allowed_list, false, false, true);
-
 
 		// CET ALLOWED countries, with special check for single country
 		$ac_country_default = $field->parameters->get('ac_country_default', '');
 		$ac_country_allowed_list = $field->parameters->get('ac_country_allowed_list', '');
+		$ac_country_allowed_list = $field->parameters->get('ac_country_default', '').',' .$field->parameters->get('ac_country_allowed_list', '');
 		$ac_country_allowed_list = array_unique(FLEXIUtilities::paramToArray($ac_country_allowed_list, "/[\s]*,[\s]*/", false, true));
 		$single_country = count($ac_country_allowed_list)==1 && $ac_country_default ? $ac_country_default : false;
-
 
 		// CREATE COUNTRY OPTIONS
 		$_list = count($ac_country_allowed_list) ? array_flip($ac_country_allowed_list) : $list_countries;
 		$allowed_country_names = array();
 		$allowed_countries = array(''=>JText::_('FLEXI_SELECT'));
+		
 		foreach($_list as $country_code => $k)
 		{
 			$country_op = new stdClass;
@@ -171,32 +170,33 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			$country_op->text  = JText::_('PLG_FC_ADDRESSINT_CC_'.$country_code);
 			if (count($ac_country_allowed_list)) $allowed_country_names[] = $country_op->text;
 		}
-		//echo $ac_country_options; exit;
-
+		
 		$countries_attribs = ''
 			. ($single_country ? ' disabled="disabled" readonly="readonly"' : '')
 			. ' onchange="fcfield_addrint.toggle_USA_state(this);" ';
 
-
 		// Create Image marker list
 		$folderMarkerUrl = JPATH_SITE. DS ."images". DS . $folder_custom_marker. DS;
+		
 		// Default marker
 		if ($mapapi_edit == 'googlemap') 
 		{
-			$custom_marker_default = 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png'; //TODO use a defaut marker
+			$custom_marker_default = 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png';
 		} else if ($mapapi_edit == 'algolia')
 		{
 			$custom_marker_default = 'https://unpkg.com/leaflet@1.5.1/dist/images/marker-icon.png';
-		} // Question: do I need-> else {$custom_marker_default = ''} ?
+		}
+
 		$imgs = JFolder::files($folderMarkerUrl);
 		if ($imgs) {
 		$custom_markers = array(''=>JText::_('FLEXI_SELECT'));
 			foreach ($imgs as $custom_marker) {
 				$custom_markers_op = new stdClass;
 				$custom_markers[] = $custom_markers_op;
-				$custom_markers_op->value = JURI::root(). DS ."images/". $folder_custom_marker."/". $custom_marker;
+				$custom_markers_op->value = JURI::root(). DS . "images/". $folder_custom_marker."/". $custom_marker; //TODO: is DS legit or not
 				$custom_markers_op->text = str_replace($folderMarkerUrl, "" ,$custom_marker);
 			}
+			
 		}
 
 		// CREATE AC SEARCH TYPE OPTIONS
@@ -206,7 +206,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			$lbl = $list_ac_types[$ac_type];
 			$ac_type_options .= '<option value="'.htmlspecialchars($ac_type, ENT_COMPAT, 'UTF-8').'"  '.($ac_type == $ac_types_default ? 'selected="selected"' : '').'>'.JText::_($lbl)."</option>\n";
 		}
-
+		
 		// CSS classes of value container
 		$value_classes  = 'fcfieldval_container valuebox fcfieldval_container_'.$field->id;
 
@@ -216,7 +216,6 @@ class plgFlexicontent_fieldsAddressint extends FCField
 
 		// JS safe Field name
 		$field_name_js = str_replace('-', '_', $field->name);
-
 
 		// JS data of current field
 		if ($mapapi_edit == 'googlemap') // TODO correct script on field.php
@@ -239,20 +238,20 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			// Add the drag and drop sorting feature
 			if ($add_ctrl_btns) $js .= "
 			jQuery(document).ready(function(){
-				jQuery('#sortables_".$field->id."').sortable({
-					handle: '.fcfield-drag-handle',
-					/*containment: 'parent',*/
-					tolerance: 'pointer'
-					".($field->parameters->get('fields_box_placing', 1) ? "
-					,start: function(e) {
-						//jQuery(e.target).children().css('float', 'left');
-						//fc_setEqualHeights(jQuery(e.target), 0);
-					}
-					,stop: function(e) {
-						//jQuery(e.target).children().css({'float': 'none', 'min-height': '', 'height': ''});
-					}
-					" : '')."
-				});
+					jQuery('#sortables_".$field->id."').sortable({
+						handle: '.fcfield-drag-handle',
+						/*containment: 'parent',*/
+						tolerance: 'pointer'
+						".($field->parameters->get('fields_box_placing', 1) ? "
+						,start: function(e) {
+							//jQuery(e.target).children().css('float', 'left');
+							//fc_setEqualHeights(jQuery(e.target), 0);
+						}
+						,stop: function(e) {
+							//jQuery(e.target).children().css({'float': 'none', 'min-height': '', 'height': ''});
+						}
+						" : '')."
+					});
 			});
 			";
 
@@ -409,6 +408,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 				;
 
 			// Update map header information
+			if($mapapi_edit == 'googlemap') {
 			$js .= "
 				theInput = newField.find('.addrint_marker_tolerance').first();
 				theInput.attr('name','".$fieldname."['+uniqueRowNum".$field->id."+'][marker_tolerance]');
@@ -418,7 +418,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 				theInput = newField.find('.addrint_zoom_label').first();
 				theInput.attr('id','".$elementid."_'+uniqueRowNum".$field->id."+'_zoom_label');
 				";
-
+			};
 			// Update messages box
 			$js .= "
 				theDiv = newField.find('div.addrint_messages');
@@ -584,22 +584,19 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			JText::script('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_COUNTRY_NOT_ALLOWED_WARNING', false);
 			JText::script('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_PLEASE_USE_COUNTRIES', false);
 		// Load form_googlemap.js
-		if ($mapapi_edit == 'googlemap') // TODO correct script on field.php
+		if ($mapapi_edit == 'googlemap')
 		{
 			$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form_googlemap.js', array('version' => FLEXI_VHASH));
 			// Load google maps library
 			flexicontent_html::loadFramework('google-maps', 'form', $field->parameters);
 		}
 		// Load leaflet & form_algolia.js
+		// TODO move js in field to a framwork for multi values
 		if ( $mapapi_edit == 'algolia')
 		{
 			$document->addStyleSheet('https://cdn.jsdelivr.net/leaflet/1/leaflet.css');
 			$document->addScript('https://cdn.jsdelivr.net/leaflet/1/leaflet.js');
 			$document->addScript('https://cdn.jsdelivr.net/npm/places.js@1.17.1');
-			//$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form_algolia.js', array('version' => FLEXI_VHASH));
-			//$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/algolia_fields.js', array('version' => FLEXI_VHASH));
-			//$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form_googlemap.js', array('version' => FLEXI_VHASH));
-			//flexicontent_html::loadFramework('google-maps', 'form', $field->parameters);
 		}
 	}
 
@@ -685,7 +682,6 @@ class plgFlexicontent_fieldsAddressint extends FCField
 		return true;
 	}
 
-
 	// Method to create basic search index (added as the property field->search)
 	function onIndexSearch(&$field, &$post, &$item)
 	{
@@ -756,7 +752,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			$newpost[$new]['url']   = !isset($v['url']) ? '' : flexicontent_html::dataFilter($v['url'],    4000,   'URL', '');
 			$newpost[$new]['zoom']  = !isset($v['zoom']) ? '' : flexicontent_html::dataFilter($v['zoom'],  2, 'INTEGER', $map_zoom);
 
-			$newpost[$new]['lat']   = $newpost[$new]['lat'] ? $newpost[$new]['lat'] : '';  // clear if zero  ///////// Question: c'est quoi ce ternaire?  ////////////////////////////////
+			$newpost[$new]['lat']   = $newpost[$new]['lat'] ? $newpost[$new]['lat'] : '';  // clear if zero
 			$newpost[$new]['lon']   = $newpost[$new]['lon'] ? $newpost[$new]['lon'] : '';  // clear if zero
 
 			// Allow saving these into the DB, so that they can be enabled later
