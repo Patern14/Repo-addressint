@@ -179,7 +179,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 
 
 		// Create Image marker list
-		$folderMarkerUrl = JPATH_SITE. DS ."images". DS . $folder_custom_marker. DS; // Probleme: $folder_custom_marker does not exist ////////
+		$folderMarkerUrl = JPATH_SITE. DS ."images". DS . $folder_custom_marker. DS;
 		// Default marker
 		if ($mapapi_edit == 'googlemap') 
 		{
@@ -260,6 +260,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			$js .= "
 			function addField".$field->id."(el, groupval_box, fieldval_box, params)
 			{
+				console.log('New Field Created');
 				var insert_before   = (typeof params!== 'undefined' && typeof params.insert_before   !== 'undefined') ? params.insert_before   : 0;
 				var remove_previous = (typeof params!== 'undefined' && typeof params.remove_previous !== 'undefined') ? params.remove_previous : 0;
 				var scroll_visible  = (typeof params!== 'undefined' && typeof params.scroll_visible  !== 'undefined') ? params.scroll_visible  : 1;
@@ -275,7 +276,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 				var newField  = lastField.clone();
 				newField.find('.fc-has-value').removeClass('fc-has-value');
 				";
-
+			
 			// NOTE: HTML tag id of this form element needs to match the -for- attribute of label HTML tag of this FLEXIcontent field, so that label will be marked invalid when needed
 			// Update non-optional properties
 			$js .= "
@@ -596,6 +597,9 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			$document->addScript('https://cdn.jsdelivr.net/leaflet/1/leaflet.js');
 			$document->addScript('https://cdn.jsdelivr.net/npm/places.js@1.17.1');
 			//$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form_algolia.js', array('version' => FLEXI_VHASH));
+			//$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/algolia_fields.js', array('version' => FLEXI_VHASH));
+			//$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form_googlemap.js', array('version' => FLEXI_VHASH));
+			//flexicontent_html::loadFramework('google-maps', 'form', $field->parameters);
 		}
 	}
 
@@ -810,7 +814,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 		// CSV export: Create customized output and return
 		if ($prop === 'csv_export')
 		{
-			$separatorf = ' | ';   ////////////// Question: pourquoi le format CSV, et c'est quoi l'interet de $separatorf? ///////////////////////////
+			$separatorf = ' | ';   ////////////// Question: pourquoi le format CSV, et c'est quoi l'interet de $separatorf? ///////////////////////
 			$itemprop = false;
 
 			$csv_export_text = $field->parameters->get('csv_export_text', '{{addr1}} {{city}} ZIP: {{zip}}');
@@ -839,7 +843,6 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			return;
 		}
 
-
 		// Get layout name
 		$viewlayout = $field->parameters->get('viewlayout', '');
 		$viewlayout = $viewlayout && $viewlayout != 'value' ? 'value_'.$viewlayout : 'value';
@@ -847,3 +850,4 @@ class plgFlexicontent_fieldsAddressint extends FCField
 		$this->displayFieldValue($prop, $viewlayout);
 	}
 }
+
