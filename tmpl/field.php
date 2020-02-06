@@ -2,7 +2,6 @@
 //No direct access
 defined( '_JEXEC' ) or die( 'Restricted access' );
 
-
 $dom_ready_js = '';
 
 $n = 0;
@@ -59,6 +58,8 @@ foreach ($values as $value)
 
 
 // Googlemap fields:
+	if($mapapi = 'googlemap') 
+	{
 	$field_html = '
 	<div class="fcfield_field_data_box fcfield_addressint_data">
 	<div><div id="'.$elementid_n.'_messages" class="alert alert-warning fc-iblock addrint_messages" style="display:none;"></div></div>
@@ -190,7 +191,7 @@ foreach ($values as $value)
 	<input type="hidden" id="'.$elementid_n.'_url" name="'.$fieldname_n.'[url]" value="'.htmlspecialchars($value['url'], ENT_COMPAT, 'UTF-8').'" />
 
 	';
-
+	}
 // Algolia use googlemap fields: 
 	if($mapapi_edit == 'algolia')
 	{
@@ -273,7 +274,7 @@ foreach ($values as $value)
 
 		<tr '.($use_country ? '' : 'style="display:none;"').' class="fc_gm_country_row">
 			<td class="key"><label class="fc-prop-lbl fc_gm_country-lbl" for="'.$elementid_n.'_country">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_COUNTRY').'</label></td>
-			<td><input type="text" id="country-algolia" placeholder="Country Algolia" class="fcfield_textval fc_gm_country" size="50" maxlength="100" /></td>
+			<td><input type="text" id="'.$elementid_n.'_country" placeholder="Country Algolia" class="fcfield_textval fc_gm_country" size="50" maxlength="100" /></td>
 		</tr>
 
 	') .
@@ -315,15 +316,12 @@ foreach ($values as $value)
 			</div>
 		</div>
 
-		<div class="fcfield_addressint_canvas_outer">
-			<div id="map_canvas_'.$elementid_n.'" class="addrint_map_canvas" '.($map_width || $map_height  ?  'style="width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div>
-		</div>
 	</div>
-
 // Algolia map container:
-	<div id="carte" class="map-preview" >
-		<div id="map-example-container" class="addrint_algolia_canvas" '.($map_width || $map_height  ?  'style=";width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div>
-	</div>
+		<div id="carte" class="map-preview" >
+			<div id="map-example-container_'.$elementid_n.'" class="addrint_algolia_canvas" '.($map_width || $map_height  ?  'style=";width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div>
+		</div>
+
 
 
 	<input type="hidden" id="'.$elementid_n.'_addr_formatted" name="'.$fieldname_n.'[addr_formatted]" value="'.htmlspecialchars($value['addr_formatted'], ENT_COMPAT, 'UTF-8').'" />
@@ -331,9 +329,122 @@ foreach ($values as $value)
 
 	';
 
-	}
+// Algolia Autocomplete 
 
-	if($addr_edit_mode == 'plaintext')
+  $dom_ready_js='(function() {
+			var placesAutocomplete = places({  
+				appId: \''.$algolia_api_id.'\',
+				apiKey: \''.$algolia_api_key.'\',
+				container: document.querySelector(\'#'.$elementid_n.'_autocomplete\'),
+				templates: {
+				  value: function(suggestion) {
+					return suggestion.name;
+				  }
+				}
+				}).configure({
+				type: \'address\'
+				});
+				placesAutocomplete.on(\'change\', function resultSelected(e) {
+				document.querySelector(\'#'.$elementid_n.'_addr1\').value = e.suggestion.value || \'\';
+				document.querySelector(\'#'.$elementid_n.'_city\').value = e.suggestion.city || \'\';
+				document.querySelector(\'#'.$elementid_n.'_province\').value = e.suggestion.administrative || \'\';
+				document.querySelector(\'#'.$elementid_n.'_zip\').value = e.suggestion.postcode || \'\';
+				document.querySelector(\'#'.$elementid_n.'_country\').value = e.suggestion.country || \'\';
+				document.querySelector(\'#'.$elementid_n.'_lat\').value = e.suggestion.latlng[\'lat\'] || \'\';
+				document.querySelector(\'#'.$elementid_n.'_lon\').value = e.suggestion.latlng[\'lng\'] || \'\';
+				});
+		/* Algolia map container: */
+		  var map = L.map(\'map-example-container_'.$elementid_n.'\', {
+			scrollWheelZoom: true,
+			zoomControl: true
+		  });
+		
+		  var osmLayer = new L.TileLayer(
+			\'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png\', {
+			  minZoom: 1,
+			  maxZoom: 19,
+			  attribution: \'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors\'
+			}
+		  );
+		
+		  var markers = [];
+		
+		  
+		  map.setView(new L.LatLng(45, 0), 2);
+		  map.addLayer(osmLayer);
+		
+		  placesAutocomplete.on(\'suggestions\', handleOnSuggestions);
+		  placesAutocomplete.on(\'cursorchanged\', handleOnCursorchanged);
+		  placesAutocomplete.on(\'change\', handleOnChange);
+		  placesAutocomplete.on(\'clear\', handleOnClear);
+		
+		  function handleOnSuggestions(e) {
+			markers.forEach(removeMarker);
+			markers = [];
+		
+			if (e.suggestions.length === 0) {
+			  map.setView(new L.LatLng(45, 0), 2);
+			  return;
+			}
+		
+			e.suggestions.forEach(addMarker);
+			findBestZoom();
+		  }
+		
+		  function handleOnChange(e) {
+			markers
+			  .forEach(function(marker, markerIndex) {
+				if (markerIndex === e.suggestionIndex) {
+				  markers = [marker];
+				  marker.setOpacity(1);
+				  findBestZoom();
+				} else {
+				  removeMarker(marker);
+				}
+			  });
+		  }
+		
+		  function handleOnClear() {
+			map.setView(new L.LatLng(45, 0), 1);
+			markers.forEach(removeMarker);
+		  }
+		
+		  function handleOnCursorchanged(e) {
+			markers
+			  .forEach(function(marker, markerIndex) {
+				if (markerIndex === e.suggestionIndex) {
+				  marker.setOpacity(1);
+				  marker.setZIndexOffset(1000);
+				} else {
+				  marker.setZIndexOffset(0);
+				  marker.setOpacity(0.5);
+				}
+			  });
+		  }
+		
+		  function addMarker(suggestion) {
+			var marker = L.marker(suggestion.latlng, {opacity: .4});
+			marker.addTo(map);
+			markers.push(marker);
+		  }
+		
+		  function removeMarker(marker) {
+			map.removeLayer(marker);
+		  }
+		
+		  function findBestZoom() {
+			var featureGroup = L.featureGroup(markers);
+			map.fitBounds(featureGroup.getBounds().pad(0.5), {animate: false});
+		  }
+			
+		})();';
+		
+}
+
+	
+}
+
+if($addr_edit_mode == 'plaintext')
 	{
 		$field_html .= '
 		<input type="hidden" id="'.$elementid_n.'_name" name="'.$fieldname_n.'[name]" value="'.htmlspecialchars($value['name'], ENT_COMPAT, 'UTF-8').'" />
@@ -380,117 +491,6 @@ if ( $mapapi_edit == 'googlemap'){
 	</div>
 	';
 	$n++;
-}
-
-// Algolia Autocomplete 
-if ( $mapapi_edit == 'algolia'){ 
-  $dom_ready_js='(function() {
-			var placesAutocomplete = places({  
-				appId: \''.$algolia_api_id.'\',
-				apiKey: \''.$algolia_api_key.'\',
-				container: document.querySelector(\'#custom_localisation_0_autocomplete\'),
-				templates: {
-				  value: function(suggestion) {
-					return suggestion.name;
-				  }
-				}
-				}).configure({
-				type: \'address\'
-				});
-				placesAutocomplete.on(\'change\', function resultSelected(e) {
-				document.querySelector(\'#custom_localisation_0_addr1\').value = e.suggestion.value || \'\';
-				document.querySelector(\'#custom_localisation_0_city\').value = e.suggestion.city || \'\';
-				document.querySelector(\'#custom_localisation_0_province\').value = e.suggestion.administrative || \'\';
-				document.querySelector(\'#custom_localisation_0_zip\').value = e.suggestion.postcode || \'\';
-				document.querySelector(\'#country-algolia\').value = e.suggestion.country || \'\';
-				document.querySelector(\'#custom_localisation_0_lat\').value = e.suggestion.latlng[\'lat\'] || \'\';
-				document.querySelector(\'#custom_localisation_0_lon\').value = e.suggestion.latlng[\'lng\'] || \'\';
-				});
-		/* Algolia map container: */
-		  var map = L.map(\'map-example-container\', {
-			scrollWheelZoom: true,
-			zoomControl: true
-		  });
-		
-		  var osmLayer = new L.TileLayer(
-			\'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png\', {
-			  minZoom: 1,
-			  maxZoom: 19,
-			  attribution: \'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors\'
-			}
-		  );
-		
-		  var markers = [];
-		
-		  map.setView(new L.LatLng(0, 0), 1);
-		  map.addLayer(osmLayer);
-		
-		  placesAutocomplete.on(\'suggestions\', handleOnSuggestions);
-		  placesAutocomplete.on(\'cursorchanged\', handleOnCursorchanged);
-		  placesAutocomplete.on(\'change\', handleOnChange);
-		  placesAutocomplete.on(\'clear\', handleOnClear);
-		
-		  function handleOnSuggestions(e) {
-			markers.forEach(removeMarker);
-			markers = [];
-		
-			if (e.suggestions.length === 0) {
-			  map.setView(new L.LatLng(0, 0), 1);
-			  return;
-			}
-		
-			e.suggestions.forEach(addMarker);
-			findBestZoom();
-		  }
-		
-		  function handleOnChange(e) {
-			markers
-			  .forEach(function(marker, markerIndex) {
-				if (markerIndex === e.suggestionIndex) {
-				  markers = [marker];
-				  marker.setOpacity(1);
-				  findBestZoom();
-				} else {
-				  removeMarker(marker);
-				}
-			  });
-		  }
-		
-		  function handleOnClear() {
-			map.setView(new L.LatLng(0, 0), 1);
-			markers.forEach(removeMarker);
-		  }
-		
-		  function handleOnCursorchanged(e) {
-			markers
-			  .forEach(function(marker, markerIndex) {
-				if (markerIndex === e.suggestionIndex) {
-				  marker.setOpacity(1);
-				  marker.setZIndexOffset(1000);
-				} else {
-				  marker.setZIndexOffset(0);
-				  marker.setOpacity(0.5);
-				}
-			  });
-		  }
-		
-		  function addMarker(suggestion) {
-			var marker = L.marker(suggestion.latlng, {opacity: .4});
-			marker.addTo(map);
-			markers.push(marker);
-		  }
-		
-		  function removeMarker(marker) {
-			map.removeLayer(marker);
-		  }
-		
-		  function findBestZoom() {
-			var featureGroup = L.featureGroup(markers);
-			map.fitBounds(featureGroup.getBounds().pad(0.5), {animate: false});
-		  }
-			
-		})();';
-}
 
 if ($dom_ready_js)
 {

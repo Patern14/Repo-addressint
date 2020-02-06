@@ -179,7 +179,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 
 
 		// Create Image marker list
-		$folderMarkerUrl = JPATH_SITE. DS ."images". DS . $folder_custom_marker. DS; 
+		$folderMarkerUrl = JPATH_SITE. DS ."images". DS . $folder_custom_marker. DS; // Probleme: $folder_custom_marker does not exist ////////
 		// Default marker
 		if ($mapapi_edit == 'googlemap') 
 		{
@@ -219,7 +219,7 @@ class plgFlexicontent_fieldsAddressint extends FCField
 
 
 		// JS data of current field
-		if ($mapapi_edit == 'googlemap') // TODO correct script on field.php /////////////////////////////////////////////////////////
+		if ($mapapi_edit == 'googlemap') // TODO correct script on field.php
 		{
 		$js = '
 			fcfield_addrint.allowed_countries["'.$field_name_js.'"] = new Array('.(count($ac_country_allowed_list) ? '"' . implode('", "', $ac_country_allowed_list) . '"' : '').');
@@ -582,18 +582,20 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			JText::script('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_MARKER_ADDRESS_ONLY_LONG_LAT', false);
 			JText::script('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_COUNTRY_NOT_ALLOWED_WARNING', false);
 			JText::script('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_PLEASE_USE_COUNTRIES', false);
-		// Load form.js
-		if ($mapapi_edit == 'googlemap') // TODO correct script on field.php /////////////////////////////////////////////////////////
+		// Load form_googlemap.js
+		if ($mapapi_edit == 'googlemap') // TODO correct script on field.php
 		{
-			$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form.js', array('version' => FLEXI_VHASH));
+			$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form_googlemap.js', array('version' => FLEXI_VHASH));
 			// Load google maps library
 			flexicontent_html::loadFramework('google-maps', 'form', $field->parameters);
 		}
-		// Load leaflet & algolia
-		if ( $mapapi_edit == 'algolia'){
+		// Load leaflet & form_algolia.js
+		if ( $mapapi_edit == 'algolia')
+		{
 			$document->addStyleSheet('https://cdn.jsdelivr.net/leaflet/1/leaflet.css');
 			$document->addScript('https://cdn.jsdelivr.net/leaflet/1/leaflet.js');
 			$document->addScript('https://cdn.jsdelivr.net/npm/places.js@1.17.1');
+			//$document->addScript(JUri::root(true) . '/plugins/flexicontent_fields/addressint/js/form_algolia.js', array('version' => FLEXI_VHASH));
 		}
 	}
 
@@ -664,7 +666,6 @@ class plgFlexicontent_fieldsAddressint extends FCField
 			$field->html = '<div class="fcfieldval_container valuebox fcfieldval_container_'.$field->id.'">' . $field->html[0] .'</div>';
 		}
 	}
-
 
 	// ***
 	// *** SEARCH / INDEXING METHODS
