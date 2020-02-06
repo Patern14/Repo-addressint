@@ -571,7 +571,7 @@ foreach ($this->values as $n => $value)
 		else
 
 		{
-
+			// Algolia map container:
 			$map .= '
 
 			<div id="' . $map_tagid . '" '

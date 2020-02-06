@@ -69,8 +69,6 @@ foreach ($values as $value)
 					'.$message_error.'  
 					<label class="' . $add_on_class . ' fc-lbl-short addrint_autocomplete-lbl" for="'.$elementid_n.'_autocomplete" style="float: none;"><span class="icon-search"></span></label>
 					<input id="'.$elementid_n.'_autocomplete" class="addrint_autocomplete" name="'.$fieldname_n.'[autocomplete]" type="text" autocomplete="off" />
-					<select id="'.$elementid_n.'_ac_type" class="addrint_ac_type" name="'.$fieldname_n.'[ac_type]" onchange="fcfield_addrint.changeAutoCompleteType(this.id.replace(\'_ac_type\', \'\'), \''.$field->name.'\');">
-						'.$ac_type_options.'
 					</select>
 				</div>
 			</td>
@@ -193,50 +191,147 @@ foreach ($values as $value)
 	<input type="hidden" id="'.$elementid_n.'_url" name="'.$fieldname_n.'[url]" value="'.htmlspecialchars($value['url'], ENT_COMPAT, 'UTF-8').'" />
 
 	';
-// Algolia fields
+
+// Algolia use googlemap fields: 
 	if($mapapi_edit == 'algolia')
 	{
 		$field_html = '
-		Algolia // TODO MIX value value with googlemap form + add long and lat
-	<div id="algolia-form">
-		<div class="form-group">
-		<label for="form-address">Address*</label>
-		<input type="search" class="form-address" id="form-address" placeholder="Where do you live?" />
-		</div>
-		<div class="form-group">
-		<label for="form-address2">Address 2</label>
-		<input type="text" class="form-control" id="form-address2" placeholder="Street number and name" />
-		</div>
-		<div class="form-group">
-		<label for="form-city">City*</label>
-		<input type="text" class="form-control" id="form-city" placeholder="City">
-		</div>
-		<div class="form-group">
-		<label for="form-zip">ZIP code*</label>
-		<input type="text" class="form-control" id="form-zip" placeholder="ZIP code">
-		</div>
-		<div class="form-group">
-		<label for="form-lon">Longitude*</label>
-		<input type="text" class="form-control" id="form-lon" placeholder="Long">
-		</div>
-		<div class="form-group">
-		<label for="form-lat">Latitude*</label>
-		<input type="text" class="form-control" id="form-lat" placeholder="Latitude">
-		</div>
-		<div class="form-group">
-		<label for="form-marker">Custom icon</label>
-		<select class="form-control" id="form-marker" placeholder="Marker">
-			
-		</select>
-		</div>
-		Fin algolia
+	<div class="fcfield_field_data_box fcfield_addressint_data">
+	<div><div id="'.$elementid_n.'_messages" class="alert alert-warning fc-iblock addrint_messages" style="display:none;"></div></div>
+
+	<table class="fc-form-tbl fcfullwidth fcinner fc-addressint-field-tbl"><tbody>
+		<tr>
+			<td colspan="2" class="fc-nopad-h-cell">
+					'.$message_error.'  
+					<label class="' . $add_on_class . ' fc-lbl-short addrint_autocomplete-lbl" for="'.$elementid_n.'_autocomplete" style="float: none;"><span class="icon-search"></span></label>
+					<input id="'.$elementid_n.'_autocomplete" class="addrint_autocomplete" name="'.$fieldname_n.'[autocomplete]" type="text" autocomplete="off" />
+					</select>
+				</div>
+			</td>
+		<tr>
+	' .
+
+
+	($addr_edit_mode != 'plaintext' ? '' : '
+		<tr>
+			<td class="key"><label class="fc-prop-lbl addrint_addr_display-lbl" for="'.$elementid_n.'_addr_display">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_ADDRESS').'</label></td>
+			<td><textarea class="fcfield_textval addrint_addr_display ' . (in_array('address', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_addr_display" name="'.$fieldname_n.'[addr_display]" rows="4" cols="24">'
+			.($value['addr_display'] ? $value['addr_display'] :
+				(
+					( // Minimum fields present for creating an address
+					!empty($value['addr1'])    || !empty($value['city']) || !empty($value['state']) ||
+					!empty($value['province']) || !empty($value['zip'])
+					) ?
+					 ($value['name'] ? $value['name']."\n" : '')
+					.($value['addr1'] ? $value['addr1'] . "\n" : '')
+					.($value['addr2'] ? $value['addr2'] . "\n" : '')
+					.($value['addr3'] ? $value['addr3'] . "\n" : '')
+					.($value['city'] || $value['state'] ? ($value['city']  ? ' ' . $value['city']  : '') . ($value['state'] ? ' ' . $value['state'] : '') : '')
+					.($value['province'] ? ' '  . $value['province'] : '')
+					.($value['zip']      ? ', ' . $value['zip'] . ($value['zip_suffix'] ? ' '.$value['zip_suffix'] : '') . "\n" : '')
+					.($value['country']  ? JText::_('PLG_FC_ADDRESSINT_CC_'.$value['country']) . "\n" : '')
+				: ''
+				)
+			)
+			.'</textarea>
+			</td>
+		</tr>
+	') .
+
+
+	($addr_edit_mode != 'formatted' ? '' : '
+		<tr '.($use_name ? '' : 'style="display:none;"').' class="fc_gm_name_row">
+			<td class="key"><label class="fc-prop-lbl addrint_name-lbl" for="'.$elementid_n.'_name" >'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_BUSINESS_LOCATION').'</label></td>
+			<td><input type="text" class="fcfield_textval addrint_name ' . ($use_name && in_array('business_location', $required_props) ? ' required' : '') . $disabled_class . '" disabled="disable" id="'.$elementid_n.'_name" name="'.$fieldname_n.'[name]" value="'.htmlspecialchars($value['name'], ENT_COMPAT, 'UTF-8').'" size="50" maxlength="100" /></td>
+		</tr>
+		<tr class="fc_gm_addr_row">
+			<td class="key"><label class="fc-prop-lbl addrint_addr1-lbl" for="'.$elementid_n.'_addr1">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_STREET_ADDRESS').'</label></td>
+			<td>
+				<textarea class="fcfield_textval addrint_addr1 ' . (in_array('street_address', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_addr1" name="'.$fieldname_n.'[addr1]" maxlength="400" cols="47" rows="2">'.$value['addr1'].'</textarea>'
+				.($use_addr2 ? '<br/><textarea class="fcfield_textval addrint_addr2" id="'.$elementid_n.'_addr2" name="'.$fieldname_n.'[addr2]" maxlength="400" rows="2">'.$value['addr2'].'</textarea>' : '')
+				.($use_addr3 ? '<br/><textarea class="fcfield_textval addrint_addr3" id="'.$elementid_n.'_addr3" name="'.$fieldname_n.'[addr3]" maxlength="400" rows="2">'.$value['addr3'].'</textarea>' : '')
+				.'
+			</td>
+		</tr>
+		<tr class="fc_gm_city_row">
+			<td class="key"><label class="fc-prop-lbl fc_gm_city-lbl" for="'.$elementid_n.'_city">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_CITY').'</label></td>
+			<td><input type="text" class="fcfield_textval fc_gm_city ' . (in_array('city', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_city" name="'.$fieldname_n.'[city]" value="'.htmlspecialchars($value['city'], ENT_COMPAT, 'UTF-8').'" size="50" maxlength="100" /></td>
+		</tr>
+		<tr '.($use_usstate ? '' : 'style="display:none;"').' class="fc_gm_usstate_row">
+			<td class="key"><label class="fc-prop-lbl fc_gm_usstate-lbl" for="'.$elementid_n.'_state">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_US_STATE').'</label></td>
+			<td>'.JHtml::_('select.genericlist', $list_states, $fieldname_n.'[state]', ' class="use_select2_lib fc_gm_usstate ' . ($use_usstate && in_array('us_state', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr, 'value', 'text', $value['state'], $elementid_n.'_state').'</td>
+		</tr>
+		<tr '.($use_province ? '' : 'style="display:none;"').' class="fc_gm_province_row">
+			<td class="key"><label class="fc-prop-lbl fc_gm_province-lbl" for="'.$elementid_n.'_province">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_NON_US_STATE_PROVINCE').'</label></td>
+			<td><input type="text" class="fcfield_textval fc_gm_province ' . ($use_province && in_array('non_us_state_province', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_province" name="'.$fieldname_n.'[province]" value="'.htmlspecialchars($value['province'], ENT_COMPAT, 'UTF-8').'" size="50" maxlength="100" /></td>
+		</tr>
+		<tr class="fc_gm_zip_row">
+			<td class="key"><label class="fc-prop-lbl addrint_zip-lbl" for="'.$elementid_n.'_zip">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_ZIP_POSTAL_CODE').'</label></td>
+			<td>
+				<input type="text" class="fcfield_textval inlineval addrint_zip ' . (in_array('zip_postal_code', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_zip" name="'.$fieldname_n.'[zip]" value="'.htmlspecialchars($value['zip'], ENT_COMPAT, 'UTF-8').'" size="10" maxlength="10" />
+				<span '.($use_zip_suffix ? '' : 'style="display:none"').'>&nbsp;<input type="text" class="fcfield_textval inlineval addrint_zip_suffix" id="'.$elementid_n.'_zip_suffix" name="'.$fieldname_n.'[zip_suffix]" value="'.htmlspecialchars($value['zip_suffix'], ENT_COMPAT, 'UTF-8').'" size="5" maxlength="10" /></span>
+			</td>
+		</tr>
+		<tr '.($use_country ? '' : 'style="display:none;"').' class="fc_gm_country_row">
+			<td class="key"><label class="fc-prop-lbl fc_gm_country-lbl" for="'.$elementid_n.'_country">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_COUNTRY').'</label></td>
+			<td>
+				'.JHtml::_('select.genericlist', $allowed_countries, $fieldname_n.'[country]', /* $countries_attribs  .*/ ' class="use_select2_lib fc_gm_country ' . ($use_country && in_array('country', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr, 'value', 'text', ($value['country'] ? $value['country'] : $ac_country_default), $elementid_n.'_country').'
+			</td>
+		</tr>
+	') .
+
+
+	(!$edit_latlon ? '' : '
+		<tr>
+			<td class="key"><label class="fc-prop-lbl addrint_lat-lbl">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_LATITUDE').'</label></td>
+			<td><input type="text" class="fcfield_textval addrint_lat ' . (in_array('latitude', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_lat" name="'.$fieldname_n.'[lat]" value="'.htmlspecialchars($value['lat'], ENT_COMPAT, 'UTF-8').'" size="50" maxlength="10" /></td>
+		</tr>
+		<tr>
+			<td class="key"><label class="fc-prop-lbl addrint_lon-lbl">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_LONGITUDE').'</label></td>
+			<td><input type="text" class="fcfield_textval addrint_lon ' . (in_array('longitude', $required_props) ? ' required' : '') . $disabled_class . '" ' . $disabled_attr . ' id="'.$elementid_n.'_lon" name="'.$fieldname_n.'[lon]" value="'.htmlspecialchars($value['lon'], ENT_COMPAT, 'UTF-8').'" size="50" maxlength="10" /></td>
+		</tr>
+	') .
+	(!$use_custom_marker ? '' : '
+		<tr class="fc_gm_custom_marker_row">
+		<td class="key"><label class="fc-prop-lbl fc_gm_custom_marker-lbl" for="'.$elementid_n.'_custom_marker">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_CUSTOM_MARKER').'</label></td>
+			<td>'.JHtml::_('select.genericlist', $custom_markers, $fieldname_n.'[custom_marker]',' class="use_select2_lib fc_gm_custom_marker" ', 'value', 'text', ($value['custom_marker'] ? $value['custom_marker'] : $custom_marker_default), $elementid_n.'_custom_marker').'
+			</td>
+		</tr>
+	') .
+
+	'
+	</tbody></table>
+
 	</div>
-		
-			TODO FIX POSITION map
-			<div id="carte" class="map-preview" >
-		<center><div id="map-example-container" class="addrint_algolia_canvas" '.($map_width || $map_height  ?  'style=";width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div></center>
+
+	<div id="'.$elementid_n.'_addressint_map" class="fcfield_field_preview_box fcfield_addressint_map" style="display: none;">
+		<div>
+			<div class="'.$input_grp_class.' fc-xpended">
+				<label class="' . $add_on_class . ' fc-lbl-short addrint_marker_tolerance-lbl">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_MARKER_TOLERANCE').'</label>
+				<input type="text" class="fcfield_textval inlineval addrint_marker_tolerance" id="'.$elementid_n.'_marker_tolerance" name="'.$fieldname_n.'[marker_tolerance]" value="50" size="7" maxlength="7" />
+			</div>
+			&nbsp;
+			<div class="'.$input_grp_class.' fc-xpended">
+				<label class="' . $add_on_class . ' fc-lbl-short addrint_zoom-lbl">'.JText::_('PLG_FLEXICONTENT_FIELDS_ADDRESSINT_ZOOM_LEVEL').'</label>
+				<span id="'.$elementid_n.'_zoom_label" class="' . $add_on_class . ' addrint_zoom_label">'.$value['zoom'].'</span>
+			</div>
+		</div>
+
+		<div class="fcfield_addressint_canvas_outer">
+			<div id="map_canvas_'.$elementid_n.'" class="addrint_map_canvas" '.($map_width || $map_height  ?  'style="width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div>
+		</div>
 	</div>
-		';
+	
+// Algolia map container:
+	<div id="carte" class="map-preview" >
+		<div id="map-example-container" class="addrint_algolia_canvas" '.($map_width || $map_height  ?  'style=";width:'.$map_width.'px; height:'.$map_height.'px;"' : '').'></div>
+	</div>
+
+
+	<input type="hidden" id="'.$elementid_n.'_addr_formatted" name="'.$fieldname_n.'[addr_formatted]" value="'.htmlspecialchars($value['addr_formatted'], ENT_COMPAT, 'UTF-8').'" />
+	<input type="hidden" id="'.$elementid_n.'_url" name="'.$fieldname_n.'[url]" value="'.htmlspecialchars($value['url'], ENT_COMPAT, 'UTF-8').'" />
+
+	';
 
 	}
 
@@ -270,6 +365,7 @@ foreach ($values as $value)
 		<input type="hidden" id="'.$elementid_n.'_lon" name="'.$fieldname_n.'[lon]" class="addrint_lon" value="'.htmlspecialchars($value['lon'], ENT_COMPAT, 'UTF-8').'" />
 		';
 	}
+	// TODO: probably useless code
 if ( $mapapi_edit == 'googlemap'){ 
 	$js .= '
 	fcfield_addrint.LatLon["'.$elementid_n.'"] =  {lat: '.($value['lat'] ? $value['lat'] : '0').', lng: '.($value['lon'] ? $value['lon'] : '0').'};
@@ -294,7 +390,7 @@ if ( $mapapi_edit == 'algolia'){
 			var placesAutocomplete = places({  
 				appId: \''.$algolia_api_id.'\',
 				apiKey: \''.$algolia_api_key.'\',
-				container: document.querySelector(\'#form-address\'),
+				container: document.querySelector(\'#custom_localisation_0_autocomplete\'),
 				templates: {
 				  value: function(suggestion) {
 					return suggestion.name;
@@ -304,13 +400,15 @@ if ( $mapapi_edit == 'algolia'){
 				type: \'address\'
 				});
 				placesAutocomplete.on(\'change\', function resultSelected(e) {
-				document.querySelector(\'#form-address2\').value = e.suggestion.administrative || \'\';
-				document.querySelector(\'#form-city\').value = e.suggestion.city || \'\';
-				document.querySelector(\'#form-zip\').value = e.suggestion.postcode || \'\';
-				document.querySelector(\'#form-lat\').value = e.suggestion.latlng[\'lat\'] || \'\';
-				document.querySelector(\'#form-lon\').value = e.suggestion.latlng[\'lng\'] || \'\';
+				document.querySelector(\'#custom_localisation_0_addr1\').value = e.suggestion.value || \'\';
+				document.querySelector(\'#custom_localisation_0_city\').value = e.suggestion.city || \'\';
+				document.querySelector(\'#custom_localisation_0_province\').value = e.suggestion.administrative || \'\';
+				document.querySelector(\'#custom_localisation_0_zip\').value = e.suggestion.postcode || \'\';
+				document.querySelector(\'.select2-choice\').value = e.suggestion.country || \'\';
+				document.querySelector(\'#custom_localisation_0_lat\').value = e.suggestion.latlng[\'lat\'] || \'\';
+				document.querySelector(\'#custom_localisation_0_lon\').value = e.suggestion.latlng[\'lng\'] || \'\';
 				});
-		
+		/* Algolia map container: */
 		  var map = L.map(\'map-example-container\', {
 			scrollWheelZoom: true,
 			zoomControl: true
